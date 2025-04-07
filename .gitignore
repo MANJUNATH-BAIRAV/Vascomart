@@ -1,0 +1,51 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+build/
+
+# Maven
+.mvn/
+!**/src/main/**/maven-wrapper.jar
+
+# Logs
+*.log
+logs/
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Node (React frontend)
+node_modules/
+npm-debug.log
+.env
+
+# Docker
+**/.env
+**/Dockerfile~
+
+# Kubernetes secrets or temp
+k8s/*.temp.yaml
+
+# IntelliJ / Eclipse
+*.ipr
+*.iws
+*.bak
+*.tmp
+*.swp
+.project
+.classpath
+.settings/
+
+# Others
+.env.*
+*.db
