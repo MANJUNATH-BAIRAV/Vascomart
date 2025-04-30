@@ -1,17 +1,27 @@
 api:
   user-service: lb://user-service/api/v1/users
+
 server:
   port: 8082
+
 spring:
   application:
     name: auth-service
   profiles:
     active: dev
+
 springdoc:
   api-docs:
     path: /api-docs
+
 management:
   endpoints:
     web:
       exposure:
         include: health,metrics
+
+  metrics:
+    export:
+      otlp:
+        enabled: true
+        url: http://localhost:4318/v1/metrics  # Change this to actual OTLP collector URL if needed
