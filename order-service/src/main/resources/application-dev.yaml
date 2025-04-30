@@ -14,8 +14,8 @@ spring:
     problemdetails:
       enabled: false
   datasource:
-    password: postgres
-    url: jdbc:postgresql://localhost:5435/orders
+    password: vasco
+    url: jdbc:postgresql://localhost:5432/orders
     username: postgres
   jpa:
     hibernate:

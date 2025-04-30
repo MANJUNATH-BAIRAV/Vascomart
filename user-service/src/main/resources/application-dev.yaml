@@ -12,7 +12,7 @@ spring:
     problemdetails:
       enabled: false
   datasource:
-    password: postgres
+    password: vasco
     url: jdbc:postgresql://localhost:5432/users
     username: postgres
   jpa:
