@@ -6,6 +6,7 @@ import com.example.authservice.dtos.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -40,5 +41,16 @@ public class UserServiceClient
             return Optional.empty();
         }
 
+    }
+
+    @Override
+    public boolean createUser(final UserDto userDto) {
+        try {
+            var url = this.userServiceUrl;
+            var response = this.restTemplate.postForEntity(url, userDto, Void.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "Failed to create user: " + e.getMessage());
+        }
     }
 }

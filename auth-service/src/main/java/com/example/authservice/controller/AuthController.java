@@ -2,6 +2,7 @@ package com.example.authservice.controller;
 
 import com.example.authservice.config.ContextHolder;
 import com.example.authservice.dtos.LoginDto;
+import com.example.authservice.dtos.UserDto;  // Import your UserDto
 import com.example.authservice.service.IAuthService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,6 +60,30 @@ public class AuthController {
                              .build();
     }
 
+    /**
+     * Registration endpoint for creating a new user.
+     */
+    @Operation(
+            summary = "Register a new user",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "User registered successfully")
+            }
+    )
+    @PostMapping("/register")
+    public ResponseEntity<String> register(
+            @Valid @RequestBody UserDto userDto
+    ) {
+        boolean isUserCreated = this.authService.register(userDto);
+
+        if (isUserCreated) {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                                 .body("User registered successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body("User registration failed");
+        }
+    }
+
     @Hidden
     @PostMapping("/validate")
     public ResponseEntity<Object> validateToken(
@@ -89,8 +115,6 @@ public class AuthController {
     private void logRequest(
             final HttpServletRequest request,
             final Object obj
-
-
     ) {
         log.info(
                 "{} - {} - {} - {} - {}",

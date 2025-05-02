@@ -1,12 +1,25 @@
 api:
   auth-service: lb://auth-service/api/v1/auth
+
 server:
   port: 8087
+
 spring:
   application:
     name: api-gateway
   profiles:
     active: dev
+
+  # Expose Actuator endpoints
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: "*"  # Expose all actuator endpoints (health, metrics, etc.)
+    endpoint:
+      health:
+        show-details: always  # Always show health details
+
 springdoc:
   api-docs:
     path: /api-docs

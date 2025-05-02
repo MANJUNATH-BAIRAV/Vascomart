@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface IUserServiceClient {
     Optional<UserDto> getUserForLogin(final LoginDto loginDto);
+
+    boolean createUser(final UserDto userDto);
 }

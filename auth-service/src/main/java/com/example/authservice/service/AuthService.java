@@ -2,6 +2,7 @@ package com.example.authservice.service;
 
 import com.example.authservice.controller.AuthException;
 import com.example.authservice.dtos.LoginDto;
+import com.example.authservice.dtos.UserDto;
 import com.example.authservice.dtos.UserHeader;
 import com.example.authservice.jwt.JWTHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,5 +39,14 @@ public class AuthService
                                      HttpStatus.UNAUTHORIZED,
                                      AuthException.GENERIC_LOGIN_FAIL
                              ));
+    }
+
+    @Override
+    public boolean register(final UserDto userDto) {
+        try {
+            return this.userServiceClient.createUser(userDto);
+        } catch (Exception e) {
+            throw new AuthException(HttpStatus.BAD_REQUEST, "Registration failed: " + e.getMessage());
+        }
     }
 }

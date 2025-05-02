@@ -1,6 +1,5 @@
 package com.example.authservice.dtos;
 
-
 import java.io.Serializable;
 
 public record UserDto(
@@ -8,7 +7,9 @@ public record UserDto(
         String name,
         String lastName,
         String email,
-        String username
+        String username,
+        String password,
+        String role
 )
         implements Serializable {
 }
