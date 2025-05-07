@@ -22,13 +22,29 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     private Long userId;
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
     @ToString.Exclude
     @OneToMany(mappedBy = "order",
                fetch = FetchType.LAZY,
                cascade = CascadeType.ALL)
     private List<OrderProduct> products;
+
+    public void setProducts(List<OrderProduct> products) {
+        this.products = products;
+    }
 
     @CreationTimestamp
     @Column(nullable = false,

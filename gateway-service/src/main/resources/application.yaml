@@ -9,6 +9,15 @@ spring:
     name: api-gateway
   profiles:
     active: dev
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/order-service/**
+          filters:
+            - StripPrefix=1
 
   # Expose Actuator endpoints
   management:

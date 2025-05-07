@@ -20,7 +20,7 @@ public class JWTHelper {
     private static final String SECRET_KEY = "LSE1yJq4TJuIneLtE1ZjwkGITMQJrgiFFZr8vOTGCWc=";
 
     private static final SecretKey key = new SecretKeySpec(Base64.getDecoder()
-                                                                 .decode(SECRET_KEY), "HmacSHA256");
+                                                             .decode(SECRET_KEY), "HmacSHA256");
 
     public String generateToken(UserDto user) throws JsonProcessingException {
 
@@ -33,6 +33,7 @@ public class JWTHelper {
         var claims = Jwts.claims();
         claims.put("username", user.username());
         claims.put("userId", user.id());
+        claims.put("role", user.role());
 
         return Jwts.builder()
                    .setClaims(claims)
@@ -54,8 +55,9 @@ public class JWTHelper {
 
             var userId = claims.get("userId", Long.class);
             var username = claims.get("username", String.class);
+            var role = claims.get("role", String.class);
 
-            var value = new UserHeader(userId, username);
+            var value = new UserHeader(userId, username, role);
             return Optional.of(value);
         } catch (JwtException e) {
             return Optional.empty();

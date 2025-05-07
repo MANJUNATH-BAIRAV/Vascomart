@@ -11,6 +11,10 @@ import io.opentelemetry.sdk.logs.SdkLoggerProvider;
 import io.opentelemetry.sdk.logs.export.BatchLogRecordProcessor;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +61,27 @@ public class OpenTelemetryConfig {
                                                  .setEndpoint("http://localhost:4317")
                                                  .build())
                 .build();
+    }
+
+    @Bean
+    public SdkTracerProvider sdkTracerProvider(Environment environment) {
+        String applicationName = environment.getProperty("spring.application.name", "order-service");
+        Resource resource = Resource.getDefault()
+                .merge(Resource.create(Attributes.of(
+                        ResourceAttributes.SERVICE_NAME, applicationName,
+                        ResourceAttributes.SERVICE_VERSION, "1.0.0"
+                )));
+
+        return SdkTracerProvider.builder()
+                .addSpanProcessor(SimpleSpanProcessor.create(SpanExporter.composite()))
+                .setResource(resource)
+                .setSampler(Sampler.alwaysOn())
+                .build();
+    }
+    
+    @Bean
+    public ContextPropagators contextPropagators() {
+        return ContextPropagators.create(W3CTraceContextPropagator.getInstance());
     }
 
 }

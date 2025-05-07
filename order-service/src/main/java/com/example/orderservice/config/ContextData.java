@@ -11,4 +11,16 @@ public class ContextData {
     private final String correlationId;
     private final Long userId;
     private final String username;
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
 }
