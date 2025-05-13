@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const Login = () => {
+const Register = () => {
+  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
+    console.log("Register button clicked"); // 🔍 Debug check
+
     try {
-      const res = await fetch('http://localhost:8082/api/v1/auth/login', {
+      const res = await fetch('http://localhost:8082/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ name, username, email, password }),
       });
 
       const contentType = res.headers.get('content-type');
@@ -24,11 +28,10 @@ const Login = () => {
       }
 
       if (res.ok) {
-        localStorage.setItem('token', data?.token);
-        console.log('Login successful:', data);
-        navigate('/');
+        console.log('Registration success:', data);
+        navigate('/login'); // go to login after registration
       } else {
-        const errMsg = data?.message || text || 'Login failed';
+        const errMsg = data?.message || text || 'Registration failed';
         setError(errMsg);
       }
     } catch (err) {
@@ -38,7 +41,13 @@ const Login = () => {
 
   return (
     <div style={{ maxWidth: 300, margin: 'auto', marginTop: 100 }}>
-      <h2>Login</h2>
+      <h2>Register</h2>
+      <input
+        type="text"
+        placeholder="Name"
+        value={name}
+        onChange={e => setName(e.target.value)}
+      /><br />
       <input
         type="text"
         placeholder="Username"
@@ -46,18 +55,24 @@ const Login = () => {
         onChange={e => setUsername(e.target.value)}
       /><br />
       <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+      /><br />
+      <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={e => setPassword(e.target.value)}
       /><br />
-      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleRegister}>Register</button>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <hr />
-      <p>Don't have an account? <Link to="/register">Register</Link></p>
+      <p>Already have an account? <Link to="/login">Login</Link></p>
     </div>
   );
 };
 
-export default Login;
+export default Register;
