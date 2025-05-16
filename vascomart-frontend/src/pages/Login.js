@@ -25,6 +25,8 @@ const Login = () => {
 
       if (res.ok) {
         localStorage.setItem('token', data?.token);
+        localStorage.setItem('username', username);
+        localStorage.setItem('userId', data?.userId || '1');
         console.log('Login successful:', data);
         navigate('/');
       } else {
