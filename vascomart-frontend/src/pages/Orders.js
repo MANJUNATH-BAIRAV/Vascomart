@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import './Orders.css';
 
+// Icons (you can replace with actual icon components if using an icon library)
+const CheckIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+);
+
+const ErrorIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="8" x2="12" y2="12"></line>
+    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+  </svg>
+);
+
 const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -103,54 +119,110 @@ const Orders = () => {
     }));
   };
 
+  // Calculate order summary
+  const totalItems = Object.values(orderItems).reduce((sum, qty) => sum + (parseInt(qty) || 0), 0);
+  const subtotal = products.reduce((sum, product) => {
+    const qty = orderItems[product.id] || 0;
+    return sum + (product.price * qty);
+  }, 0);
+  const tax = subtotal * 0.18; // 18% tax
+  const total = subtotal + tax;
+
   if (loading && products.length === 0) {
-    return <div className="loading">Loading products...</div>;
+    return (
+      <div className="orders-container">
+        <div className="orders-header">
+          <h1>Create New Order</h1>
+          <p>Loading products...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="orders-container">
       <div className="orders-header">
-        <h2>Create New Order</h2>
+        <h1>Create New Order</h1>
+        <p>Select the products you'd like to order</p>
       </div>
-      
-      <div className="new-order">
-        <h3>Select Products</h3>
-        {error && <div className="error">{error}</div>}
-        {success && <div className="success">{success}</div>}
-        
-        <div className="product-list">
+
+      {error && (
+        <div className="message message-error">
+          <ErrorIcon />
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="message message-success">
+          <CheckIcon />
+          {success}
+        </div>
+      )}
+
+      <div className="order-layout">
+        <div className="products-grid">
           {products.map(product => (
-            <div key={product.id} className="product-item">
-              <div className="product-info">
-                <h4>{product.name}</h4>
-                <p>Price: ₹{product.price?.toFixed(2) || '0.00'}</p>
+            <div key={product.id} className="product-card fade-in">
+              <div className="product-image">
+                {product.imageUrl ? (
+                  <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span>No image available</span>
+                )}
               </div>
-              <div className="quantity-controls">
-                <button 
-                  onClick={() => updateQuantity(product.id, (orderItems[product.id] || 0) - 1)}
-                  disabled={!orderItems[product.id]}
-                >
-                  -
-                </button>
-                <input 
-                  type="number" 
-                  min="0"
-                  value={orderItems[product.id] || 0}
-                  onChange={(e) => updateQuantity(product.id, e.target.value)}
-                />
-                <button onClick={() => updateQuantity(product.id, (orderItems[product.id] || 0) + 1)}>
-                  +
-                </button>
+              <div className="product-details">
+                <h3 className="product-title">{product.name}</h3>
+                <div className="product-price">₹{product.price?.toFixed(2) || '0.00'}</div>
+                <div className="product-stock">{product.quantity || 0} in stock</div>
+                
+                <div className="quantity-controls">
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(product.id, (orderItems[product.id] || 0) - 1)}
+                    disabled={!orderItems[product.id]}
+                  >
+                    -
+                  </button>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max={product.quantity || 0}
+                    value={orderItems[product.id] || 0}
+                    onChange={(e) => updateQuantity(product.id, e.target.value)}
+                    className="quantity-input"
+                  />
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(product.id, (orderItems[product.id] || 0) + 1)}
+                    disabled={(orderItems[product.id] || 0) >= (product.quantity || 0)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-        
-        <div className="order-actions">
+
+        <div className="order-summary">
+          <h3>Order Summary</h3>
+          <div className="summary-row">
+            <span>Items ({totalItems}):</span>
+            <span>₹{subtotal.toFixed(2)}</span>
+          </div>
+          <div className="summary-row">
+            <span>Tax (18%):</span>
+            <span>₹{tax.toFixed(2)}</span>
+          </div>
+          <div className="summary-row summary-total">
+            <span>Total:</span>
+            <span>₹{total.toFixed(2)}</span>
+          </div>
           <button 
             onClick={placeOrder} 
-            className="place-order-btn"
-            disabled={loading}
+            className="btn btn-primary"
+            disabled={loading || totalItems === 0}
           >
             {loading ? 'Placing Order...' : 'Place Order'}
           </button>

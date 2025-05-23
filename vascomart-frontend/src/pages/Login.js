@@ -1,13 +1,33 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FiLogIn, FiMail, FiLock, FiPhone, FiUser } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
+import '../styles/Auth.css';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  const { username, password } = formData;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
     try {
       const res = await fetch('http://localhost:8082/api/v1/auth/login', {
         method: 'POST',
@@ -27,37 +47,105 @@ const Login = () => {
         localStorage.setItem('token', data?.token);
         localStorage.setItem('username', username);
         localStorage.setItem('userId', data?.userId || '1');
-        console.log('Login successful:', data);
         navigate('/');
       } else {
-        const errMsg = data?.message || text || 'Login failed';
+        const errMsg = data?.message || text || 'Invalid username or password';
         setError(errMsg);
       }
     } catch (err) {
-      setError('Error: ' + err.message);
+      setError('An error occurred. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 300, margin: 'auto', marginTop: 100 }}>
-      <h2>Login</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-      /><br />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-      /><br />
-      <button onClick={handleLogin}>Login</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1>Welcome Back</h1>
+          <p>Sign in to your account to continue</p>
+        </div>
 
-      <hr />
-      <p>Don't have an account? <Link to="/register">Register</Link></p>
+        {error && (
+          <div className="message message-error">
+            <FiPhone />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="username">Username or Email</label>
+            <div className="input-with-icon">
+              <FiUser className="input-icon" />
+              <input
+                id="username"
+                name="username"
+                type="text"
+                className="form-control"
+                placeholder="Enter your username or email"
+                value={username}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="flex justify-between items-center">
+              <label htmlFor="password">Password</label>
+              <Link to="/forgot-password" className="text-sm text-indigo-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <div className="input-with-icon">
+              <FiLock className="input-icon" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                className="form-control"
+                placeholder="••••••••"
+                value={password}
+                onChange={handleChange}
+                required
+                minLength="6"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              'Signing in...'
+            ) : (
+              <>
+                <FiLogIn className="mr-2" />
+                Sign In
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="divider">or continue with</div>
+
+        <button className="btn btn-google">
+          <FcGoogle size={20} />
+          Sign in with Google
+        </button>
+
+        <p className="auth-footer">
+          Don't have an account?{' '}
+          <Link to="/register" className="font-medium">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };

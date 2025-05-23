@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FiUser, FiMail, FiLock, FiPhone, FiCheck } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
+import '../styles/Auth.css';
 
 const Register = () => {
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+  });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = async () => {
-    console.log("Register button clicked"); // 🔍 Debug check
+  const { name, username, email, password } = formData;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setIsLoading(true);
 
     try {
       const res = await fetch('http://localhost:8082/api/v1/auth/register', {
@@ -28,49 +48,144 @@ const Register = () => {
       }
 
       if (res.ok) {
-        console.log('Registration success:', data);
-        navigate('/login'); // go to login after registration
+        setSuccess('Registration successful! Redirecting to login...');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       } else {
         const errMsg = data?.message || text || 'Registration failed';
         setError(errMsg);
       }
     } catch (err) {
-      setError('Error: ' + err.message);
+      setError('An error occurred. Please try again.');
+      console.error('Registration error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 300, margin: 'auto', marginTop: 100 }}>
-      <h2>Register</h2>
-      <input
-        type="text"
-        placeholder="Name"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      /><br />
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-      /><br />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-      /><br />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-      /><br />
-      <button onClick={handleRegister}>Register</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <h1>Create an Account</h1>
+          <p>Join us today and start shopping</p>
+        </div>
 
-      <hr />
-      <p>Already have an account? <Link to="/login">Login</Link></p>
+        {error && (
+          <div className="message message-error">
+            <FiPhone />
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="message message-success">
+            <FiCheck />
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="name">Full Name</label>
+            <div className="input-with-icon">
+              <FiUser className="input-icon" />
+              <input
+                id="name"
+                name="name"
+                type="text"
+                className="form-control"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <div className="input-with-icon">
+              <FiUser className="input-icon" />
+              <input
+                id="username"
+                name="username"
+                type="text"
+                className="form-control"
+                placeholder="Choose a username"
+                value={username}
+                onChange={handleChange}
+                required
+                minLength="3"
+              />
+            </div>
+          </div>
+
+
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <div className="input-with-icon">
+              <FiMail className="input-icon" />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                className="form-control"
+                placeholder="your@email.com"
+                value={email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <div className="input-with-icon">
+              <FiLock className="input-icon" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                className="form-control"
+                placeholder="••••••••"
+                value={password}
+                onChange={handleChange}
+                required
+                minLength="6"
+              />
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Must be at least 6 characters
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            className="btn btn-primary mt-2"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </button>
+        </form>
+
+        <div className="divider">or sign up with</div>
+
+        <button className="btn btn-google">
+          <FcGoogle size={20} />
+          Sign up with Google
+        </button>
+
+        <p className="auth-footer">
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };
