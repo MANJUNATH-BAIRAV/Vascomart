@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProductImage } from '../utils/productImages';
 import './Orders.css';
 
 // Icons (you can replace with actual icon components if using an icon library)
@@ -165,11 +166,15 @@ const Orders = () => {
           {products.map(product => (
             <div key={product.id} className="product-card fade-in">
               <div className="product-image">
-                {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <span>No image available</span>
-                )}
+                <img 
+                  src={getProductImage(product.name)} 
+                  alt={product.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getProductImage('default');
+                  }}
+                />
               </div>
               <div className="product-details">
                 <h3 className="product-title">{product.name}</h3>

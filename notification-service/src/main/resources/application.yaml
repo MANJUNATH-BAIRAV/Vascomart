@@ -4,18 +4,58 @@ api:
       order-created: "order.created.v1"
 server:
   port: 8086
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+  tomcat:
+    max-http-form-post-size: 2MB
+
 spring:
   application:
     name: notification-service
   profiles:
     active: dev
   kafka:
+    bootstrap-servers: localhost:9092
     consumer:
       group-id: order-group
+      auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    listener:
+      missing-topics-fatal: false
+  messages:
+    basename: i18n/messages
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+# WebSocket Configuration
+websocket:
+  endpoint: /ws
+  topic: /topic/orders
+  app: /app
+  allowed-origins: "*"
+
+# Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,metrics,info
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.messaging.simp: DEBUG

@@ -26,6 +26,9 @@ const Header = () => {
           <Link to="/orders" className={`nav-link ${isActive('/orders')}`}>
             Orders
           </Link>
+          <Link to="/notifications" className={`nav-link ${isActive('/notifications')}`}>
+            Notifications
+          </Link>
           <Link to="/login" className={`nav-link login-btn ${isActive('/login')}`}>
             Login
           </Link>

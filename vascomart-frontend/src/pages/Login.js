@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiLogIn, FiLock, FiPhone, FiUser, FiMail } from 'react-icons/fi';
+import { FiLogIn, FiLock, FiPhone, FiUser } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import '../styles/Auth.css';
 

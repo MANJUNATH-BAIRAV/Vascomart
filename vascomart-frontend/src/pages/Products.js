@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { getProductImage } from '../utils/productImages';
 import './Products.css';
 
-// Icons
+// Icons (keep these icons as they are used in the UI)
 const PlusIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -23,6 +24,8 @@ const ErrorIcon = () => (
     <line x1="12" y1="16" x2="12.01" y2="16"></line>
   </svg>
 );
+
+// Product image handling is now imported from '../utils/productImages'
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -258,11 +261,14 @@ const Products = () => {
           products.map((product) => (
             <div key={product.id} className="product-card">
               <div className="product-image">
-                {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} />
-                ) : (
-                  <span>No image available</span>
-                )}
+                <img 
+                  src={getProductImage(product.name)} 
+                  alt={product.name}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = getProductImage('default');
+                  }}
+                />
               </div>
               <div className="product-details">
                 <h3 className="product-title">{product.name}</h3>
