@@ -17,6 +17,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @RestController
 @RequestMapping(value = {"api/v1/auth"})
@@ -70,17 +73,18 @@ public class AuthController {
             }
     )
     @PostMapping("/register")
-    public ResponseEntity<String> register(
+    public ResponseEntity<Map<String, String>> register(
             @Valid @RequestBody UserDto userDto
     ) {
         boolean isUserCreated = this.authService.register(userDto);
-
+        Map<String, String> response = new HashMap<>();
+        
         if (isUserCreated) {
-            return ResponseEntity.status(HttpStatus.CREATED)
-                                 .body("User registered successfully");
+            response.put("message", "User registered successfully");
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body("User registration failed");
+            response.put("error", "User registration failed");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 

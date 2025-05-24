@@ -1,68 +1,95 @@
-const productImages = {
+// Base URL for product images
+const IMAGE_BASE_URL = '/images';
+
+// Map of product names to their image filenames (without path)
+const productImageMap = {
   // Audio
-  'Earbuds': '/images/Earbuds.jpg',
-  'Gaming Headset': '/images/Gaming Headset.jpg',
-  'In-Ear Headphones': '/images/In-Ear Headphones.jpg',
-  'Speaker': '/images/Speaker.jpg',
-  'Sport Earphones': '/images/Sport Earphones.jpg',
-  'Bluetooth Speaker': '/images/Bluetooth Speaker.jpg',
+  'earbuds': 'Earbuds.jpg',
+  'gaming headset': 'Gaming Headset.jpg',
+  'in-ear headphones': 'In-Ear Headphones.jpg',
+  'headphones': 'In-Ear Headphones.jpg',
+  'speaker': 'Speaker.jpg',
+  'sport earphones': 'Sport Earphones.jpg',
+  'bluetooth speaker': 'Bluetooth Speaker.jpg',
   
   // Computer Accessories
-  'Bluetooth Keyboard': '/images/Bluetooth Keyboard.jpg',
-  'Charging Pad': '/images/Charging Pad.jpg',
-  'Compact Mouse': '/images/Compact Mouse.jpg',
-  'Cooling Pad': '/images/Cooling Pad.jpg',
-  'DVD Drive': '/images/DVD Drive.jpg',
-  'External Hard Drive': '/images/External Hard Drive.jpg',
-  'Fast Charger': '/images/Fast Charger.jpg',
-  'Gaming Controller': '/images/Gaming Controller.jpg',
-  'Hub Adapter': '/images/Hub Adapter.jpg',
-  'Keyboard Mouse Combo': '/images/Keyboard Mouse Combo.jpg',
-  'Keyboard': '/images/Keyboard.jpg',
-  'Laptop Stand': '/images/Laptop Stand.jpg',
-  'Monitor': '/images/Monitor.jpg',
-  'Mouse': '/images/Mouse.jpg',
-  'Mousepad': '/images/Mousepad.jpg',
-  'Power Adapter': '/images/Power Adapter.jpg',
-  'Powerbank': '/images/Powerbank.jpg',
-  'Presenter Remote': '/images/Presenter Remote.jpg',
-  'SSD drive': '/images/SSD drive.jpg',
-  'Trackpad': '/images/Trackpad.jpg',
-  'Webcam': '/images/Webcam.jpg',
+  'bluetooth keyboard': 'Bluetooth Keyboard.jpg',
+  'charging pad': 'Charging Pad.jpg',
+  'compact mouse': 'Compact Mouse.jpg',
+  'cooling pad': 'Cooling Pad.jpg',
+  'dvd drive': 'DVD Drive.jpg',
+  'external hard drive': 'External Hard Drive.jpg',
+  'fast charger': 'Fast Charger.jpg',
+  'gaming controller': 'Gaming Controller.jpg',
+  'hub adapter': 'Hub Adapter.jpg',
+  'keyboard mouse combo': 'Keyboard Mouse Combo.jpg',
+  'keyboard': 'Keyboard.jpg',
+  'laptop stand': 'Laptop Stand.jpg',
+  'monitor': 'Monitor.jpg',
+  'mouse': 'Mouse.jpg',
+  'mousepad': 'Mousepad.jpg',
+  'power adapter': 'Power Adapter.jpg',
+  'powerbank': 'Powerbank.jpg',
+  'power bank': 'Powerbank.jpg',
+  'presenter remote': 'Presenter Remote.jpg',
+  'ssd drive': 'SSD drive.jpg',
+  'trackpad': 'Trackpad.jpg',
+  'webcam': 'Webcam.jpg',
+  'external dvd drive': 'DVD Drive.jpg',
   
-  // Health & Fitness
-  'Fitness Tracker': '/images/Fitness Tracker.jpg',
-  'Smart Scale': '/images/Smart Scale.jpg',
-  
-  // Photography
-  'Tripod': '/images/Tripod.jpg',
+  // Phones
+  'iphone': 'iphone.jpg',
   
   // Test Products
-  'Test Product': '/images/Test Product.jpg',
-  'Test Product1': '/images/Test Product1.jpg',
+  'testproduct': 'Test Product.jpg',
+  'test product': 'Test Product.jpg',
+  'testproduct1': 'Test Product1.jpg',
+  'test product1': 'Test Product1.jpg',
+  'test product 1': 'Test Product1.jpg',
+  
+  // Health & Fitness
+  'fitness tracker': 'Fitness Tracker.jpg',
+  'smart scale': 'Smart Scale.jpg',
+  
+  // Photography
+  'tripod': 'Tripod.jpg',
   
   // Custom Products
-  'Strawhat': '/images/strawhat.jpg',
+  'strawhat': 'strawhat.jpg',
   
   // Default image (will be used if no match is found)
-  'default': '/images/pexels-mikhail-nilov-6893384.jpg'
+  'default': 'pexels-mikhail-nilov-6893384.jpg'
+};
+
+// Create a normalized version of the product name for matching
+const normalizeProductName = (name) => {
+  if (!name) return '';
+  return name.toString().toLowerCase().trim();
 };
 
 export const getProductImage = (productName) => {
-  if (!productName) return productImages['default'];
+  if (!productName) return `${IMAGE_BASE_URL}/pexels-mikhail-nilov-6893384.jpg`;
   
-  // First try exact match
-  if (productImages[productName]) {
-    return productImages[productName];
+  const normalized = normalizeProductName(productName);
+  console.log('Looking up image for product:', productName, 'Normalized:', normalized);
+  
+  // Try to find a match in the product image map
+  const imageFile = productImageMap[normalized];
+  
+  if (imageFile) {
+    const imagePath = `${IMAGE_BASE_URL}/${encodeURIComponent(imageFile)}`;
+    console.log('Found match, returning:', imagePath);
+    return imagePath;
   }
   
-  // Then try case-insensitive exact match
-  const nameLower = productName.toLowerCase();
-  const matchedKey = Object.keys(productImages).find(key => 
-    key.toLowerCase() === nameLower
-  );
-  
-  return matchedKey ? productImages[matchedKey] : productImages['default'];
+  console.log('No match found, using default image');
+  return `${IMAGE_BASE_URL}/pexels-mikhail-nilov-6893384.jpg`;
 };
 
-export default productImages;
+// For backward compatibility
+export default Object.fromEntries(
+  Object.entries(productImageMap).map(([key, value]) => [
+    key,
+    key === 'default' ? `${IMAGE_BASE_URL}/${value}` : `${IMAGE_BASE_URL}/${encodeURIComponent(value)}`
+  ])
+);

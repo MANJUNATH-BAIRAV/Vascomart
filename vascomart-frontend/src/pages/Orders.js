@@ -26,38 +26,51 @@ const Orders = () => {
   const [success, setSuccess] = useState('');
   const token = 'your-mock-jwt-token'; // In a real app, get this from auth context
 
+  // Fetch products function
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Fetch products from inventory service
+      const response = await fetch('http://localhost:8087/api/v1/products', {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setProducts(data);
+      
+      // Initialize order items with quantity 0
+      const initialItems = {};
+      data.forEach(product => {
+        initialItems[product.id] = 0;
+      });
+      setOrderItems(initialItems);
+      
+      return data; // Return the data for potential use
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError(`Failed to fetch products: ${err.message}`);
+      throw err; // Re-throw to handle in the calling function
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch products on component mount
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        
-        const response = await fetch('http://localhost:8083/api/v1/products', {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        setProducts(data);
-        
-        // Initialize order items with quantity 0
-        const initialItems = {};
-        data.forEach(product => {
-          initialItems[product.id] = 0;
-        });
-        setOrderItems(initialItems);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError(`Failed to fetch products: ${err.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
   }, []);
 
@@ -81,10 +94,13 @@ const Orders = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch('http://localhost:8085/api/v1/orders/users/me', {
+      const response = await fetch('http://localhost:8087/order-service/api/v1/orders', {
         method: 'POST',
+        credentials: 'include',  // Include cookies for CORS
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
@@ -93,9 +109,11 @@ const Orders = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to place order');
+        throw new Error(errorData.message || errorData.detail || 'Failed to place order');
       }
       
+      // We don't need the response data, just refresh the products
+      await response.json();
       setSuccess('Order placed successfully!');
       
       // Reset form
@@ -104,6 +122,9 @@ const Orders = () => {
         resetItems[key] = 0;
       });
       setOrderItems(resetItems);
+      
+      // Refresh products to update stock
+      await fetchProducts();
     } catch (err) {
       console.error('Error placing order:', err);
       setError(`Failed to place order: ${err.message}`);

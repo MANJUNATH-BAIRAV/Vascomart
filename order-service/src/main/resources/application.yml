@@ -35,11 +35,19 @@ feign:
         readTimeout: 5000
 
 eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    status-page-url: http://${eureka.instance.hostname}:${server.port}/actuator/info
+    health-check-url: http://${eureka.instance.hostname}:${server.port}/actuator/health
+    hostname: localhost
   client:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
+    healthcheck:
+      enabled: true
 
 api:
   inventory-service: lb://inventory-service/api/v1/products

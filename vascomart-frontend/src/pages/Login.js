@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FiLogIn, FiLock, FiPhone, FiUser } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import '../styles/Auth.css';
@@ -12,7 +12,6 @@ const Login = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const { username, password } = formData;
 
@@ -34,7 +33,8 @@ const Login = () => {
       const requestBody = JSON.stringify({ username, password });
       console.log('Request body:', requestBody);
       
-      const res = await fetch('http://localhost:8082/api/v1/auth/login', {
+      // Using API Gateway on port 8087
+      const res = await fetch('http://localhost:8087/api/v1/auth/login', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

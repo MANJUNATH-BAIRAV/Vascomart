@@ -4,10 +4,13 @@ import com.example.orderservice.dtos.OrderCreateDto;
 import com.example.orderservice.dtos.OrderDto;
 import com.example.orderservice.services.IOrderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.List;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -66,5 +69,21 @@ public class OrderController {
         log.info("{} - {} - Order ID: {}", request.getMethod(), request.getRequestURI(), orderId);
         var orderDto = this.orderService.getOne(orderId);
         return ResponseEntity.ok(orderDto);
+    }
+    
+    @Operation(
+        summary = "Get all orders for the current user",
+        responses = {
+            @ApiResponse(responseCode = "200", content = {
+                @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, 
+                         array = @ArraySchema(schema = @Schema(implementation = OrderDto.class)))
+            })
+        }
+    )
+    @GetMapping("users/me")
+    public ResponseEntity<List<OrderDto>> getAllForCurrentUser(HttpServletRequest request) {
+        log.info("{} - {}", request.getMethod(), request.getRequestURI());
+        var orders = this.orderService.getAllForCurrentUser();
+        return ResponseEntity.ok(orders);
     }
 }

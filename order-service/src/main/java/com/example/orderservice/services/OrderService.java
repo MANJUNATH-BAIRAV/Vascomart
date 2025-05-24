@@ -62,6 +62,15 @@ public class OrderService
 
         return this.orderMapper.toDto(order);
     }
+    
+    @Override
+    public List<OrderDto> getAllForCurrentUser() {
+        var userId = this.contextHolder.getUserId();
+        var orders = this.orderRepository.findByUserId(userId);
+        return orders.stream()
+                    .map(this.orderMapper::toDto)
+                    .toList();
+    }
 
     private List<OrderProduct> getOrderProducts(
             final OrderCreateDto orderCreateDto,

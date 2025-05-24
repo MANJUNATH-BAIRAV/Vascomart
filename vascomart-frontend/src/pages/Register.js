@@ -7,16 +7,18 @@ import '../styles/Auth.css';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
+    lastName: '',
     username: '',
     email: '',
     password: '',
+    role: 'USER' // Default role
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { name, username, email, password } = formData;
+  const { name, lastName, username, email, password, role } = formData;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,62 +35,59 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // Register the user
-      const res = await fetch('http://localhost:8082/api/v1/auth/register', {
+      console.log('Sending registration request with:', { name, lastName, username, email, role });
+      
+      // Register the user through the gateway
+      const res = await fetch('http://localhost:8087/api/v1/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, username, email, password }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ 
+          name, 
+          lastName, 
+          username, 
+          email, 
+          password, 
+          role 
+        }),
       });
 
+      console.log('Registration response status:', res.status);
       const contentType = res.headers.get('content-type');
-      const text = await res.text();
-
       let data = null;
-      if (contentType && contentType.includes('application/json') && text) {
-        data = JSON.parse(text);
+      
+      try {
+        if (contentType && contentType.includes('application/json')) {
+          data = await res.json();
+          console.log('Parsed response data:', data);
+        } else {
+          const text = await res.text();
+          console.log('Non-JSON response:', text);
+          throw new Error(text || 'Received non-JSON response from server');
+        }
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        throw new Error('Failed to process server response');
       }
 
-      if (res.ok) {
-        // After successful registration, automatically log the user in
-        const loginRes = await fetch('http://localhost:8082/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-
-        if (loginRes.ok) {
-          const loginData = await loginRes.json();
-          
-          // Get user profile after successful login
-          const userRes = await fetch('http://localhost:8081/api/v1/users/me', {
-            headers: {
-              'Authorization': `Bearer ${loginData.token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            // Store user data in localStorage (AuthContext will handle this)
-            localStorage.setItem('user', JSON.stringify(userData));
-            localStorage.setItem('token', loginData.token);
-            
-            setSuccess('Registration successful! Redirecting to your profile...');
-            setTimeout(() => {
-              navigate('/profile');
-            }, 1500);
-          } else {
-            throw new Error('Failed to load user profile');
-          }
-        } else {
-          // If auto-login fails, redirect to login page
-          setSuccess('Registration successful! Please log in.');
-          setTimeout(() => {
-            navigate('/login');
-          }, 2000);
-        }
+      if (res.status === 201 || res.ok) {
+        setSuccess('Registration successful! Redirecting to home page...');
+        
+        // Store user data in localStorage
+        const userData = { username, email };
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Wait a moment to show success message, then redirect to home
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+        
+        // Exit early to prevent further processing
+        return;
       } else {
-        const errMsg = data?.message || text || 'Registration failed';
+        const errMsg = data?.message || data?.error || 'Registration failed';
         setError(errMsg);
       }
     } catch (err) {
@@ -158,6 +157,23 @@ const Register = () => {
             </div>
           </div>
 
+
+          <div className="form-group">
+            <label htmlFor="lastName">Last Name</label>
+            <div className="input-with-icon">
+              <FiUser className="input-icon" />
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                className="form-control"
+                placeholder="Enter your last name"
+                value={lastName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>

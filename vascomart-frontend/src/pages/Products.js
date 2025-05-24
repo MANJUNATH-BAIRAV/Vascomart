@@ -42,23 +42,25 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:8083/api/v1/products', {
+      const response = await fetch('http://localhost:8087/api/v1/products', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        mode: 'cors'
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error: ${response.status}`);
       }
 
       const data = await response.json();
       setProducts(data);
     } catch (err) {
       console.error('Failed to fetch products:', err);
-      setError('Failed to fetch products. Please try again later.');
+      setError(err.message || 'Failed to fetch products. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -71,24 +73,35 @@ const Products = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8083/api/v1/products/add', {
+      const response = await fetch('http://localhost:8087/api/v1/products/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
-          quantity: parseInt(formData.quantity, 10),
-        }),
+          quantity: parseInt(formData.quantity, 10)
+        })
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to add product. Please try again.');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        throw new Error(errorData.message || errorData.detail || errorData.error || 'Failed to add product. Please try again.');
       }
 
+      // We don't need the response data, just refresh the products
+      await response.json();
       setSuccess('Product added successfully!');
       setFormData({ name: '', description: '', price: '', quantity: '' });
       setIsAddingProduct(false);
