@@ -30,25 +30,44 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      console.log('Sending login request with:', { username, password });
+      const requestBody = JSON.stringify({ username, password });
+      console.log('Request body:', requestBody);
+      
       const res = await fetch('http://localhost:8082/api/v1/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: requestBody,
       });
 
+      console.log('Response status:', res.status);
       const contentType = res.headers.get('content-type');
       const text = await res.text();
+      console.log('Response text:', text);
 
       let data = null;
       if (contentType && contentType.includes('application/json') && text) {
         data = JSON.parse(text);
+        console.log('Parsed response data:', data);
+      } else {
+        console.error('Unexpected content type or empty response');
       }
 
       if (res.ok) {
+        // Store user data in localStorage
+        const userData = {
+          id: data?.userId || '1',
+          username: username,
+          token: data?.token
+        };
         localStorage.setItem('token', data?.token);
-        localStorage.setItem('username', username);
-        localStorage.setItem('userId', data?.userId || '1');
-        navigate('/');
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Force a page reload to update the header
+        window.location.href = '/';
       } else {
         const errMsg = data?.message || text || 'Invalid username or password';
         setError(errMsg);

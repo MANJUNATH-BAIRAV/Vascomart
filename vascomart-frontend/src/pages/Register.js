@@ -33,6 +33,7 @@ const Register = () => {
     setIsLoading(true);
 
     try {
+      // Register the user
       const res = await fetch('http://localhost:8082/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,10 +49,44 @@ const Register = () => {
       }
 
       if (res.ok) {
-        setSuccess('Registration successful! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        // After successful registration, automatically log the user in
+        const loginRes = await fetch('http://localhost:8082/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          
+          // Get user profile after successful login
+          const userRes = await fetch('http://localhost:8081/api/v1/users/me', {
+            headers: {
+              'Authorization': `Bearer ${loginData.token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            // Store user data in localStorage (AuthContext will handle this)
+            localStorage.setItem('user', JSON.stringify(userData));
+            localStorage.setItem('token', loginData.token);
+            
+            setSuccess('Registration successful! Redirecting to your profile...');
+            setTimeout(() => {
+              navigate('/profile');
+            }, 1500);
+          } else {
+            throw new Error('Failed to load user profile');
+          }
+        } else {
+          // If auto-login fails, redirect to login page
+          setSuccess('Registration successful! Please log in.');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        }
       } else {
         const errMsg = data?.message || text || 'Registration failed';
         setError(errMsg);
