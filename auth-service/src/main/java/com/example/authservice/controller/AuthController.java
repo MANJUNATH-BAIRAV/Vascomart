@@ -2,7 +2,7 @@ package com.example.authservice.controller;
 
 import com.example.authservice.config.ContextHolder;
 import com.example.authservice.dtos.LoginDto;
-import com.example.authservice.dtos.UserDto;  // Import your UserDto
+import com.example.authservice.dtos.UserDto;
 import com.example.authservice.service.IAuthService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +22,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping(value = {"api/v1/auth"})
+@RequestMapping("/auth")  // Base path for auth endpoints
 @RequiredArgsConstructor
 @Tag(name = "Auth")
 public class AuthController {
@@ -30,104 +30,73 @@ public class AuthController {
     private final IAuthService authService;
     private final ContextHolder contextHolder;
 
-    /**
-     * Performs the login by setting the jwt in the response header.
-     *
-     * @param request  The HttpServletRequest.
-     * @param loginDto The login dto.
-     * @return The jwt.
-     */
     @Operation(
-            summary = "Performs the login",
-            responses = {
-                    @ApiResponse(responseCode = "204")
-            }
+        summary = "Performs the login",
+        responses = {
+            @ApiResponse(responseCode = "204")
+        }
     )
     @PostMapping("/login")
     public ResponseEntity<Object> login(
-            HttpServletRequest request,
-            @Valid
-            @RequestBody
-            LoginDto loginDto
+        HttpServletRequest request,
+        @Valid @RequestBody LoginDto loginDto
     ) {
+        logRequest(request, loginDto);
+        String jwt = authService.login(loginDto);
 
-        this.logRequest(request, loginDto);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
 
-        var jwt = this.authService.login(loginDto);
-
-        var responseHeaders = new HttpHeaders();
-        responseHeaders.set(HttpHeaders.AUTHORIZATION, "Bearer " + jwt);
-
-        return ResponseEntity.noContent()
-                             .headers(responseHeaders)
-                             .build();
+        return ResponseEntity.noContent().headers(headers).build();
     }
 
-    /**
-     * Registration endpoint for creating a new user.
-     */
     @Operation(
-            summary = "Register a new user",
-            responses = {
-                    @ApiResponse(responseCode = "201", description = "User registered successfully")
-            }
+        summary = "Register a new user",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "User registered successfully")
+        }
     )
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(
-            @Valid @RequestBody UserDto userDto
+        @Valid @RequestBody UserDto userDto
     ) {
-        boolean isUserCreated = this.authService.register(userDto);
+        boolean created = authService.register(userDto);
         Map<String, String> response = new HashMap<>();
-        
-        if (isUserCreated) {
+
+        if (created) {
             response.put("message", "User registered successfully");
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } else {
             response.put("error", "User registration failed");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
     @Hidden
     @PostMapping("/validate")
     public ResponseEntity<Object> validateToken(
-            HttpServletRequest request,
-            @RequestHeader(HttpHeaders.AUTHORIZATION)
-            String headerAuthorization
+        HttpServletRequest request,
+        @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader
     ) {
+        logRequest(request, null);
 
-        this.logRequest(request, null);
+        String token = authHeader.replace("Bearer ", "");
+        var userHeader = authService.validateToken(token);
 
-        var jwt = headerAuthorization.replace("Bearer ", "");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("userId", userHeader.id().toString());
+        headers.set("username", userHeader.username());
 
-        var userHeader = this.authService.validateToken(jwt);
-
-        var responseHeaders = new HttpHeaders();
-        responseHeaders.set(
-                "userId",
-                userHeader.id()
-                          .toString()
-        );
-        responseHeaders.set("username", userHeader.username());
-
-        return ResponseEntity.ok()
-                             .headers(responseHeaders)
-                             .build();
-
+        return ResponseEntity.ok().headers(headers).build();
     }
 
-    private void logRequest(
-            final HttpServletRequest request,
-            final Object obj
-    ) {
-        log.info(
-                "{} - {} - {} - {} - {}",
-                request.getMethod(),
-                request.getRequestURI(),
-                this.contextHolder.getCorrelationId(),
-                this.contextHolder.getUsername(),
-                obj
+    private void logRequest(HttpServletRequest request, Object body) {
+        log.info("{} - {} - {} - {} - {}",
+            request.getMethod(),
+            request.getRequestURI(),
+            contextHolder.getCorrelationId(),
+            contextHolder.getUsername(),
+            body
         );
-
     }
 }

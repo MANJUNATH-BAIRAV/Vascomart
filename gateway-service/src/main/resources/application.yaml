@@ -7,107 +7,36 @@ spring:
 
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true  # Important for case-insensitive service IDs
       routes:
         # Auth Service Routes
-        - id: auth-service-login
+        - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/v1/auth/login
-        - id: auth-service-register
-          uri: lb://auth-service
-          predicates:
-            - Path=/api/v1/auth/register
-
-        # User Service Routes - Protected Endpoints
-        - id: user-service-me
-          uri: lb://user-service
-          predicates:
-            - Path=/api/v1/users/me/**
-          # NOTE: This RequestHeader filter does NOT secure this route, 
-          # implement custom auth filter in code for real protection
+            - Path=/api/v1/auth/**
           filters:
-            - name: RequestHeader
-              args:
-                name: Authorization
-                regexp: Bearer .+
+            - StripPrefix=2
 
-        # User Service Routes - Public Endpoints
-        - id: user-service
-          uri: lb://user-service
-          predicates:
-            - Path=/api/v1/users/**
-
-        # Product Service Routes - All public
+        # Inventory Service Routes
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
             - Path=/api/v1/products/**
 
-        # Review Service Routes - All public
-        - id: reviews-service
-          uri: lb://reviews-service
-          predicates:
-            - Path=/api/v1/reviews/**
-
-        # Order Service Routes
-        - id: orders-service
-          uri: lb://order-service
-          predicates:
-            - Path=/api/v1/orders/**
-
-        # API Documentation Routes (Fixed RewritePath syntax)
-        - id: user-service-api-docs
-          uri: lb://user-service
-          predicates:
-            - Path=/user-service/api-docs/**
-          filters:
-            - RewritePath=/user-service/(?<segment>.*), /${segment}
-
-        - id: inventory-service-api-docs
-          uri: lb://inventory-service
-          predicates:
-            - Path=/inventory-service/api-docs/**
-          filters:
-            - RewritePath=/inventory-service/(?<segment>.*), /${segment}
-
-        - id: order-service-api-docs
-          uri: lb://order-service
-          predicates:
-            - Path=/order-service/api-docs/**
-          filters:
-            - RewritePath=/order-service/(?<segment>.*), /${segment}
-
-        - id: reviews-service-api-docs
-          uri: lb://reviews-service
-          predicates:
-            - Path=/reviews-service/api-docs/**
-          filters:
-            - RewritePath=/reviews-service/(?<segment>.*), /${segment}
-
-        - id: auth-service-api-docs
-          uri: lb://auth-service
-          predicates:
-            - Path=/auth-service/api-docs/**
-          filters:
-            - RewritePath=/auth-service/(?<segment>.*), /${segment}
-
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:3000"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
-
+# Eureka Configuration
 eureka:
   client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
     register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+# Logging Configuration
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: DEBUG
+    com.example: DEBUG
