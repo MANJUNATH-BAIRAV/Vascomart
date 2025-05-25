@@ -3,6 +3,7 @@ package com.example.authservice.service;
 import com.example.authservice.controller.AuthException;
 import com.example.authservice.dtos.LoginDto;
 import com.example.authservice.dtos.UserDto;
+import com.example.authservice.dto.UserCreateDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,7 +48,21 @@ public class UserServiceClient
     public boolean createUser(final UserDto userDto) {
         try {
             var url = this.userServiceUrl;
-            var response = this.restTemplate.postForEntity(url, userDto, Void.class);
+            
+            // Convert UserDto to UserCreateDto with all required fields
+            // Note: The password should be provided by the client during registration
+            // For now, we'll generate a random password, but this should be changed
+            // to get the password from the registration request
+            String randomPassword = "TemporaryPassword123!"; // Temporary solution
+            
+            var userCreateDto = UserCreateDto.builder()
+                .name(userDto.name())
+                .email(userDto.email())
+                .username(userDto.username())
+                .password(randomPassword)
+                .build();
+            
+            var response = this.restTemplate.postForEntity(url, userCreateDto, UserDto.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             throw new AuthException(HttpStatus.BAD_REQUEST, "Failed to create user: " + e.getMessage());

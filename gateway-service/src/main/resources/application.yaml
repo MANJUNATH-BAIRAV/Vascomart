@@ -20,6 +20,14 @@ spring:
           filters:
             - StripPrefix=2
 
+        # User Service Routes
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - StripPrefix=2
+
         # Inventory Service Routes
         - id: inventory-service
           uri: lb://inventory-service

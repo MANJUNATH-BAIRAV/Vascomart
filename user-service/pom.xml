@@ -13,9 +13,9 @@
     </parent>
 
     <groupId>com.vascomart.service</groupId>
-    <artifactId>customer-service</artifactId>
+    <artifactId>user-service</artifactId>
     <version>0.0.1</version>
-    <name>customer Service</name>
+    <name>User Service</name>
     <description>User microservice for Vascomart</description>
 
     <properties>
