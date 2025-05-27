@@ -33,6 +33,8 @@ spring:
           uri: lb://inventory-service
           predicates:
             - Path=/api/v1/products/**
+          filters:
+            - StripPrefix=2
 
 # Eureka Configuration
 eureka:

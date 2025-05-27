@@ -1,6 +1,6 @@
 package com.example.inventoryservice.config;
 
-import com.example.inventoryservice.controllers.AuthException;
+import com.example.inventoryservice.exception.AuthException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

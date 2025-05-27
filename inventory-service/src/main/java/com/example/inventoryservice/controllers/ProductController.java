@@ -21,17 +21,54 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
 @Slf4j
 @RequiredArgsConstructor
-@RequestMapping(path = {"api/v1/products"})
+@RequestMapping(path = {"/products"})
 @Tag(name = "Product")
 public class ProductController {
 
     private final IProductService productService;
     private final ContextHolder contextHolder;
+    
+    /**
+     * Helper method to log incoming requests
+     */
+    private void logRequest(HttpServletRequest request, Object body) {
+        try {
+            log.info("=== Incoming Request ===");
+            log.info("Method: {}", request.getMethod());
+            log.info("URL: {}", request.getRequestURL().toString());
+            
+            // Log headers
+            log.info("Headers:");
+            java.util.Collections.list(request.getHeaderNames())
+                .forEach(headerName -> log.info("  {}: {}", headerName, request.getHeader(headerName)));
+                
+            // Log request body if present
+            if (body != null) {
+                log.info("Request body: {}", body);
+            }
+            
+            // Log correlation ID and username if available
+            try {
+                if (contextHolder != null && contextHolder.get() != null) {
+                    log.info("Correlation ID: {}", contextHolder.getCorrelationId());
+                    log.info("User: {}", contextHolder.getUsername());
+                } else {
+                    log.info("Context holder or context data is null");
+                }
+            } catch (Exception ex) {
+                log.warn("Error accessing context data: {}", ex.getMessage());
+            }
+            
+        } catch (Exception e) {
+            log.warn("Error logging request: {}", e.getMessage(), e);
+        }
+    }
 
 
     /**
@@ -112,7 +149,7 @@ public class ProductController {
      * @return List of products.
      */
     @Operation(
-            summary = "Get all products",
+            summary = "Get all products (Public)",
             responses = {
                     @ApiResponse(responseCode = "200",
                                  content = {
@@ -120,18 +157,61 @@ public class ProductController {
                                                   array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))
                                  }),
                     @ApiResponse(responseCode = "400",
-                                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                                    schema = @Schema(implementation = ProblemDetail.class)))
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                               schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAll(HttpServletRequest request) {
+    public ResponseEntity<?> getAll() {
+        try {
+            log.info("Fetching all products");
+            List<ProductDto> products = productService.getAll();
+            log.info("Successfully retrieved {} products", products.size());
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            log.error("Error in getAll: {}", e.getMessage(), e);
+            var problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+            problemDetail.setDetail("Error retrieving products: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
+        }
+    }
 
-        this.logRequest(request, null);
-
-        var productsDto = this.productService.getAll();
-
-        return ResponseEntity.ok(productsDto);
+    /**
+     * Get products by IDs
+     *
+     * @param request The HttpServletRequest.
+     * @param ids     The product IDs.
+     * @return List of products.
+     */
+    @Operation(
+            summary = "Get products by IDs",
+            responses = {
+                    @ApiResponse(responseCode = "200",
+                            content = {
+                                    @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                            array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))
+                            }),
+                    @ApiResponse(responseCode = "400",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                               schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @GetMapping("/by-ids")
+    public ResponseEntity<?> getByIds(
+            HttpServletRequest request,
+            @RequestParam List<Long> ids
+    ) {
+        try {
+            logRequest(request, ids);
+            var products = productService.getAllByIds(ids);
+            log.info("Successfully retrieved {} products by IDs", products.size());
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            log.error("Error in getByIds: {}", e.getMessage(), e);
+            var problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+            problemDetail.setDetail("Error retrieving products by IDs: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
+        }
     }
 
     /**
@@ -189,60 +269,8 @@ public class ProductController {
             @RequestBody
             List<ProductStockQuantityDto> productsQuantities
     ) {
-
         this.logRequest(request, productsQuantities);
-
         this.productService.decreaseStock(productsQuantities);
-
-        return ResponseEntity.noContent()
-                             .build();
-    }
-
-    /**
-     * Get all products by ids
-     *
-     * @param request The HttpServletRequest.
-     * @param ids     The products ids.
-     * @return List of products.
-     */
-    @Operation(
-            summary = "Get all products by ids",
-            responses = {
-                    @ApiResponse(responseCode = "200",
-                                 content = {
-                                         @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                                  array = @ArraySchema(schema = @Schema(implementation = ProductDto.class)))
-                                 }),
-                    @ApiResponse(responseCode = "400",
-                                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                                    schema = @Schema(implementation = ProblemDetail.class)))
-            }
-    )
-    @GetMapping("/by-ids")
-    public ResponseEntity<List<ProductDto>> getByIds(
-            HttpServletRequest request,
-            @RequestParam
-            List<Long> ids
-    ) {
-
-        this.logRequest(request, ids);
-
-        var productsDto = this.productService.getAllByIds(ids);
-
-        return ResponseEntity.ok(productsDto);
-    }
-
-    private void logRequest(
-            final HttpServletRequest request,
-            final Object obj
-    ) {
-        log.info(
-                "{} - {} - {} - {} - {}",
-                request.getMethod(),
-                request.getRequestURI(),
-                this.contextHolder.getCorrelationId(),
-                this.contextHolder.getUsername(),
-                obj
-        );
+        return ResponseEntity.noContent().build();
     }
 }
