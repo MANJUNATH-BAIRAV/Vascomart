@@ -73,15 +73,11 @@ const Register = () => {
       }
 
       if (res.status === 201 || res.ok) {
-        setSuccess('Registration successful! Redirecting to home page...');
+        setSuccess('Registration successful! Redirecting to login page...');
         
-        // Store user data in localStorage
-        const userData = { username, email };
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        // Wait a moment to show success message, then redirect to home
+        // Wait a moment to show success message, then redirect to login
         setTimeout(() => {
-          navigate('/');
+          navigate('/login');
         }, 1500);
         
         // Exit early to prevent further processing
