@@ -24,7 +24,6 @@ const Orders = () => {
   const [orderItems, setOrderItems] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const token = 'your-mock-jwt-token'; // In a real app, get this from auth context
 
   // Fetch products function
   const fetchProducts = async () => {
@@ -35,7 +34,6 @@ const Orders = () => {
       // Fetch products from inventory service
       const response = await fetch('http://localhost:8087/api/v1/products', {
         method: 'GET',
-        mode: 'cors',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
@@ -94,26 +92,45 @@ const Orders = () => {
       setError('');
       setSuccess('');
 
-      const response = await fetch('http://localhost:8087/order-service/api/v1/orders', {
+      console.log('Sending order request with items:', items);
+      const response = await fetch('http://localhost:8087/api/v1/orders/users/me', {
         method: 'POST',
-        credentials: 'include',  // Include cookies for CORS
-        mode: 'cors',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        credentials: 'include',
         body: JSON.stringify({ products: items })
       });
+      
+      console.log('Response status:', response.status);
+      const responseData = await response.json().catch(() => ({}));
+      console.log('Response data:', responseData);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || errorData.detail || 'Failed to place order');
+        // Log detailed error information
+        console.error('Order placement failed with status:', response.status);
+        console.error('Error details:', responseData);
+        
+        // Extract more detailed error message
+        let errorMessage = 'Failed to place order';
+        if (responseData.message) {
+          errorMessage = responseData.message;
+        } else if (responseData.detail) {
+          errorMessage = responseData.detail;
+        } else if (responseData.error) {
+          errorMessage = responseData.error;
+        } else if (responseData.errors) {
+          // Handle validation errors
+          errorMessage = Object.entries(responseData.errors)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('; ');
+        }
+        
+        throw new Error(errorMessage);
       }
       
-      // We don't need the response data, just refresh the products
-      await response.json();
       setSuccess('Order placed successfully!');
       
       // Reset form

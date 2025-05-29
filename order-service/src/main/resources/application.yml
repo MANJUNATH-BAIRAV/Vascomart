@@ -34,6 +34,10 @@ feign:
         connectTimeout: 5000
         readTimeout: 5000
 
+# Service URLs
+inventory-service:
+  url: http://localhost:8083  # Direct URL to inventory service
+
 eureka:
   instance:
     prefer-ip-address: true
@@ -45,7 +49,7 @@ eureka:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
-    fetch-registry: true
+    fetch-registry: false  # Disable service discovery for now
     healthcheck:
       enabled: true
 

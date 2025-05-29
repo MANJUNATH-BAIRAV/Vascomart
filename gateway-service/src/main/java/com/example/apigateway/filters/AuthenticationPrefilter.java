@@ -2,6 +2,7 @@ package com.example.apigateway.filters;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
@@ -24,12 +25,10 @@ import static com.example.apigateway.filters.CorrelationIdFilter.CORRELATION_ID;
 public class AuthenticationPrefilter
         implements GatewayFilter {
 
-    private final org.springframework.web.reactive.function.client.WebClient.Builder webClientBuilder;
+    private final WebClient.Builder webClientBuilder;
 
-    private String getAuthServiceUrl() {
-        // Use the service ID directly, load balancing will be handled by Spring Cloud
-        return "http://auth-service/validate";
-    }
+    @Value("${api.auth-service}")
+    private String authServiceUrl;
 
     private Function<ResponseEntity<Void>, Mono<? extends Void>> getResponseEntityMonoFunction(
             final ServerWebExchange exchange,
@@ -51,20 +50,15 @@ public class AuthenticationPrefilter
                 return this.onError(exchange, response.getStatusCode());
             }
 
-            // Add all necessary headers for the order service
-            var requestBuilder = exchange.getRequest().mutate()
-                .header("userId", userId)
-                .header("username", username);
-
-            // Preserve the original path
-            String path = exchange.getRequest().getPath().value();
-            if (path.startsWith("/api/v1/orders")) {
-                requestBuilder.path(path);
-            }
+            var modifiedRequest = exchange.getRequest()
+                                          .mutate()
+                                          .header("userId", userId)
+                                          .header("username", username)
+                                          .build();
 
             return chain.filter(exchange.mutate()
-                .request(requestBuilder.build())
-                .build());
+                                        .request(modifiedRequest)
+                                        .build());
         };
     }
 
@@ -96,7 +90,7 @@ public class AuthenticationPrefilter
         try {
             return this.webClientBuilder.build()
                                         .post()
-                                        .uri(this.getAuthServiceUrl())
+                                        .uri(this.authServiceUrl + "/validate")
                                         .header(HttpHeaders.AUTHORIZATION, bearerToken)
                                         .header(CORRELATION_ID, correlationID)
                                         .retrieve()
