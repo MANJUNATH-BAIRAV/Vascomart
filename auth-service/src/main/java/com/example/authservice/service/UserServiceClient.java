@@ -49,22 +49,23 @@ public class UserServiceClient
         try {
             var url = this.userServiceUrl;
             
-            // Convert UserDto to UserCreateDto with all required fields
-            // Note: The password should be provided by the client during registration
-            // For now, we'll generate a random password, but this should be changed
-            // to get the password from the registration request
-            String randomPassword = "TemporaryPassword123!"; // Temporary solution
+            // Validate password is provided
+            if (userDto.password() == null || userDto.password().trim().isEmpty()) {
+                throw new AuthException(HttpStatus.BAD_REQUEST, "Password is required");
+            }
             
+            // Create user with the provided password
             var userCreateDto = UserCreateDto.builder()
                 .name(userDto.name())
                 .email(userDto.email())
                 .username(userDto.username())
-                .password(randomPassword)
+                .password(userDto.password())
                 .build();
             
             var response = this.restTemplate.postForEntity(url, userCreateDto, UserDto.class);
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
+            log.error("Error creating user: {}", e.getMessage(), e);
             throw new AuthException(HttpStatus.BAD_REQUEST, "Failed to create user: " + e.getMessage());
         }
     }
