@@ -1,3 +1,12 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+  tomcat:
+    max-http-form-post-size: 2MB
+
 eureka:
   client:
     fetch-registry: true
@@ -11,10 +20,27 @@ eureka:
     instance-id: ${spring.application.name}:${random.value}
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
+    status-page-url: http://${eureka.instance.hostname}:${server.port}/actuator/info
+    health-check-url: http://${eureka.instance.hostname}:${server.port}/actuator/health
 
 spring:
   application:
     name: notification-service
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+    info:
+      env:
+        enabled: true
+    prometheus:
+      enabled: true
   kafka:
     bootstrap-servers: broker:29092
     # Producer Configuration (if needed for DLQ)
@@ -26,13 +52,14 @@ spring:
       group-id: notification-group
       auto-offset-reset: earliest
       enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "com.example.notificationservice.model"
         spring.json.value.default.type: "com.example.notificationservice.model.NotificationEvent"
+        spring.json.type.mapping: notificationEvent:com.example.notificationservice.model.NotificationEvent
     # Listener Configuration
     listener:
       ack-mode: MANUAL_IMMEDIATE
@@ -71,17 +98,6 @@ spring:
       max.poll.interval.ms: 300000
       # Maximum records per poll
       max.poll.records: 10
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-    prometheus:
-      enabled: true
 
 logging:
   level:
