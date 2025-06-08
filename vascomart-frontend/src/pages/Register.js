@@ -7,18 +7,16 @@ import '../styles/Auth.css';
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
-    lastName: '',
     username: '',
     email: '',
-    password: '',
-    role: 'USER' // Default role
+    password: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const { name, lastName, username, email, password, role } = formData;
+  const { name, username, email, password } = formData;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,10 +30,17 @@ const Register = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Frontend password validation
+    if (!password || password.length < 10) {
+      setError('Password must be at least 10 characters long.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      console.log('Sending registration request with:', { name, lastName, username, email, role });
+      console.log('Sending registration request with:', { name, username, email });
       
       // Register the user through the gateway
       const res = await fetch('http://localhost:8087/api/v1/auth/register', {
@@ -46,11 +51,9 @@ const Register = () => {
         },
         body: JSON.stringify({ 
           name, 
-          lastName, 
           username, 
           email, 
-          password, 
-          role 
+          password
         }),
       });
 
@@ -154,22 +157,7 @@ const Register = () => {
           </div>
 
 
-          <div className="form-group">
-            <label htmlFor="lastName">Last Name</label>
-            <div className="input-with-icon">
-              <FiUser className="input-icon" />
-              <input
-                id="lastName"
-                name="lastName"
-                type="text"
-                className="form-control"
-                placeholder="Enter your last name"
-                value={lastName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
+          
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
@@ -198,15 +186,15 @@ const Register = () => {
                 name="password"
                 type="password"
                 className="form-control"
-                placeholder="••••••••"
+                placeholder="••••••••••"
                 value={password}
                 onChange={handleChange}
                 required
-                minLength="6"
+                minLength="10"
               />
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Must be at least 6 characters
+              Must be at least 10 characters
             </div>
           </div>
 

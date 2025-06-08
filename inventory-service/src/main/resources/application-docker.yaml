@@ -1,34 +1,35 @@
-eureka:
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://eureka-service:8761/eureka/
 server:
-  error:
-    include-exception: false
+  port: 8080  # container listens on 8080, host maps to 8083 in docker-compose
+
 spring:
-  mvc:
-    problemdetails:
-      enabled: false
+  application:
+    name: inventory-service
+
   datasource:
-    password: postgres
     url: jdbc:postgresql://db-inventory:5432/inventory
     username: postgres
+    password: postgres
+
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  mvc:
+    problemdetails:
+      enabled: false
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://eureka-service:8761/eureka/
+
 management:
-  otlp:
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
-        step: 10s
-    tracing:
-      endpoint: http://otel-collector:4318/v1/traces
-  tracing:
-    sampling:
-      probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics

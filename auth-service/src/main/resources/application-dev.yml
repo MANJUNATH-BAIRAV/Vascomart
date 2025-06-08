@@ -1,37 +1,57 @@
-eureka:
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-
 server:
+  port: 8081  # Different port for development
   error:
     include-exception: true
+  shutdown: graceful
 
 spring:
+  application:
+    name: auth-service
   datasource:
-    url: jdbc:postgresql://db-users:5432/users
+    url: jdbc:postgresql://localhost:5432/users
     username: postgres
     password: vasco
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5  # Smaller pool for development
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true  # Enable SQL logging for development
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
   mvc:
     problemdetails:
-      enabled: false
+      enabled: true  # More detailed error messages in dev
 
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+
+# Development specific logging
+logging:
+  level:
+    root: INFO
+    org.springframework: DEBUG
+    com.vascomart: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/auth-service.log
+
+# Development specific metrics
 management:
-  otlp:
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
-        step: 10s
-    tracing:
-      endpoint: http://otel-collector:4318/v1/traces
-  tracing:
-    sampling:
-      probability: 1.0
+  metrics:
+    export:
+      otlp:
+        enabled: false  # Disable OTLP in development

@@ -1,0 +1,31 @@
+# Maven
+target/
+pom.xml.versionsBackup
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Local configuration files
+application*.yml
+application*.yaml
+application*.properties

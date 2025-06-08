@@ -4,12 +4,87 @@ eureka:
     register-with-eureka: true
     service-url:
       defaultZone: http://eureka-service:8761/eureka/
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
 spring:
+  application:
+    name: notification-service
   kafka:
     bootstrap-servers: broker:29092
+    # Producer Configuration (if needed for DLQ)
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    # Consumer Configuration
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.example.notificationservice.model"
+        spring.json.value.default.type: "com.example.notificationservice.model.NotificationEvent"
+    # Listener Configuration
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      type: batch
+      ack-count: 10
+      ack-time: "5000"
+      concurrency: 3
+      poll-timeout: 3000
+      # Error Handling
+      missing-topics-fatal: false
+      # Retry Configuration
+      retry:
+        enabled: true
+        max-attempts: 3
+        backoff:
+          initial-interval: 1000
+          max-interval: 10000
+          multiplier: 2.0
+    # Error Handler Configuration
+    properties:
+      default:
+        topic:
+          replication: 1
+      # Deserialization error handling
+      spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+      spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+      spring.json.trusted.packages: "com.example.notificationservice.model"
+      # Consumer session and heartbeat timeouts
+      session.timeout.ms: 45000
+      heartbeat.interval.ms: 15000
+      # Request timeout for fetch requests
+      request.timeout.ms: 40000
+      # Auto commit interval
+      auto.commit.interval.ms: 1000
+      # Maximum poll interval
+      max.poll.interval.ms: 300000
+      # Maximum records per poll
+      max.poll.records: 10
+
 management:
-  otlp:
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
-        step: 10s
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.kafka: DEBUG
+    org.hibernate.SQL: DEBUG
