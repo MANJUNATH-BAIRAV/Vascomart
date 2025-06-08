@@ -35,10 +35,10 @@ const Header = () => {
         <nav className="nav">
           <Link to="/" className={`nav-link ${isActive('/')}`}>Home</Link>
           <Link to="/products" className={`nav-link ${isActive('/products')}`}>Products</Link>
-          <Link to="/orders" className={`nav-link ${isActive('/orders')}`}>Orders</Link>
           
           {isLoggedIn ? (
             <>
+              <Link to="/orders" className={`nav-link ${isActive('/orders')}`}>Orders</Link>
               <Link to="/notifications" className={`nav-link ${isActive('/notifications')}`}>
                 Notifications
               </Link>
