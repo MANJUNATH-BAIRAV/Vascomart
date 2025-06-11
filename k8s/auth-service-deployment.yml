@@ -15,6 +15,20 @@ spec:
       labels:
         app: auth-service
     spec:
+      initContainers:
+      - name: wait-for-db
+        image: postgres:latest
+        command: ['sh', '-c', 'until pg_isready -h db-users-service -p 5432; do echo waiting for db...; sleep 2; done;']
+        env:
+        - name: PGPASSWORD
+          value: "postgres"
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
       containers:
       - name: auth-service
         image: manjunathbairav1/auth-service:latest

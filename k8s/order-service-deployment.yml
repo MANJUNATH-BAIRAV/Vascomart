@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: user-service
+  name: order-service
   namespace: default
   labels:
-    app: user-service
+    app: order-service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: user-service
+      app: order-service
   template:
     metadata:
       labels:
-        app: user-service
+        app: order-service
     spec:
       initContainers:
       - name: wait-for-db
         image: postgres:latest
-        command: ['sh', '-c', 'until pg_isready -h db-users-service -p 5432; do echo waiting for db...; sleep 2; done;']
+        command: ['sh', '-c', 'until pg_isready -h db-orders-service -p 5432; do echo waiting for db...; sleep 2; done;']
         env:
         - name: PGPASSWORD
           value: "postgres"
@@ -27,16 +27,16 @@ spec:
             cpu: 100m
             memory: 64Mi
           requests:
-            cpu: 50m
+            cpu: 10m
             memory: 32Mi
       containers:
-      - name: user-service
-        image: manjunathbairav1/user-service:latest
+      - name: order-service
+        image: manjunathbairav1/order-service:latest
         ports:
         - containerPort: 8080
         env:
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://db-users-service:5432/users"
+          value: "jdbc:postgresql://db-orders-service:5432/orders"
         - name: SPRING_DATASOURCE_USERNAME
           value: "postgres"
         - name: SPRING_DATASOURCE_PASSWORD
@@ -48,6 +48,8 @@ spec:
           value: "http://eureka-service:8761/eureka/"
         - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
           value: "true"
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-service:9092"
         livenessProbe:
           httpGet:
             path: /actuator/health
@@ -67,3 +69,17 @@ spec:
           requests:
             memory: "512Mi"
             cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: default
+spec:
+  selector:
+    app: order-service
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
