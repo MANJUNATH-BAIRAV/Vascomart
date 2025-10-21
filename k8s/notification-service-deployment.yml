@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: default
+  labels:
+    app: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      initContainers:
+      - name: wait-for-kafka
+        image: confluentinc/cp-kafkacat:latest
+        command: ['sh', '-c', 'echo "Waiting for Kafka to be ready..."; until kafkacat -L -b kafka-service:9092 -t test-topic 2>/dev/null; do echo "Kafka not ready, waiting..."; sleep 5; done; echo "Kafka is ready!";']
+      containers:
+      - name: notification-service
+        image: manjunathbairav1/notification-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+          value: "http://eureka-service:8761/eureka/"
+        - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+          value: "true"
+        - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka-service:9092"
+        - name: SPRING_APPLICATION_NAME
+          value: "notification-service"
+        # Kafka Consumer Configuration
+        - name: SPRING_KAFKA_CONSUMER_GROUP_ID
+          value: "notification-group"
+        - name: SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET
+          value: "earliest"
+        - name: SPRING_KAFKA_CONSUMER_ENABLE_AUTO_COMMIT
+          value: "false"
+        - name: SPRING_KAFKA_CONSUMER_MAX_POLL_RECORDS
+          value: "10"
+        - name: SPRING_KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+          value: "300000"
+        # Kafka Producer Configuration
+        - name: SPRING_KAFKA_PRODUCER_ACKS
+          value: "all"
+        - name: SPRING_KAFKA_PRODUCER_RETRIES
+          value: "3"
+        - name: SPRING_KAFKA_PRODUCER_MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION
+          value: "1"
+        # Common Kafka Configuration
+        - name: SPRING_KAFKA_PROPERTIES_SESSION_TIMEOUT_MS
+          value: "45000"
+        - name: SPRING_KAFKA_PROPERTIES_REQUEST_TIMEOUT_MS
+          value: "50000"
+        - name: SPRING_KAFKA_PROPERTIES_DELIVERY_TIMEOUT_MS
+          value: "120000"
+        - name: SPRING_KAFKA_PROPERTIES_HEARTBEAT_INTERVAL_MS
+          value: "3000"
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 5
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: default
+spec:
+  selector:
+    app: notification-service
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP

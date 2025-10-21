@@ -1,34 +1,73 @@
-eureka:
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://eureka-service:8761/eureka/
 server:
+  port: 8080
   error:
-    include-exception: false
+    include-exception: true
+  shutdown: graceful
+
 spring:
-  mvc:
-    problemdetails:
-      enabled: false
+  application:
+    name: user-service
   datasource:
-    password: postgres
-    url: jdbc:postgresql://db-users:5432/users
-    username: postgres
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db-users:5432/users}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://eureka-service:8761/eureka/}
+    registry-fetch-interval-seconds: 5
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:true}
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    status-page-url: http://${eureka.hostname}:${server.port}/actuator/info
+    health-check-url: http://${eureka.hostname}:${server.port}/actuator/health
+    home-page-url: http://${eureka.hostname}:${server.port}/
+
 management:
-  otlp:
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
-        step: 10s
-    tracing:
-      endpoint: http://otel-collector:4318/v1/traces
-  tracing:
-    sampling:
-      probability: 1.0
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  health:
+    db:
+      enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    enable:
+      jvm: true
+      process: true
+      system: true
+    export:
+      otlp:
+        enabled: false  # Disable OTLP metrics exporter
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    com.vascomart: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

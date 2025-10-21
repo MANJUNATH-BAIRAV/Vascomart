@@ -1,0 +1,38 @@
+# Maven
+target/
+pom.xml.versionsBackup
+.mvn/
+.mvn/wrapper/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+
+# Build output
+build/
+bin/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+*.env
+
+# Git
+.git/
+.gitignore
+
+# Other
+.DS_Store
+*.md
+*.mdx
+
+# Local development
+src/test/

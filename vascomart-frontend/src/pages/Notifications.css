@@ -42,7 +42,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: #0A1828;
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;

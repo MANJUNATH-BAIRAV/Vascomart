@@ -1,34 +1,54 @@
-eureka:
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
 server:
+  port: 8081
   error:
     include-exception: true
+  shutdown: graceful
+
 spring:
-  mvc:
-    problemdetails:
-      enabled: false
+  application:
+    name: user-service
   datasource:
-    password: vasco
     url: jdbc:postgresql://localhost:5432/users
     username: postgres
+    password: vasco
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+
+# Metrics configuration
 management:
-  otlp:
-    metrics:
-      export:
-        url: http://localhost:4318/v1/metrics
-        step: 10s
-    tracing:
-      endpoint: http://localhost:4318/v1/traces
-  tracing:
-    sampling:
-      probability: 1.0
+  metrics:
+    export:
+      otlp:
+        enabled: false  # Disable OTLP metrics exporter
+
+# Development specific logging
+logging:
+  level:
+    root: INFO
+    org.springframework: DEBUG
+    com.vascomart: TRACE
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/user-service.log

@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-inventory-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-inventory
+  namespace: default
+  labels:
+    app: db-inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-inventory
+  template:
+    metadata:
+      labels:
+        app: db-inventory
+    spec:
+      containers:
+      - name: db-inventory
+        image: postgres:latest
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "inventory"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: db-inventory-storage
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+      volumes:
+      - name: db-inventory-storage
+        persistentVolumeClaim:
+          claimName: db-inventory-pvc
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-inventory-service
+  namespace: default
+spec:
+  selector:
+    app: db-inventory
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP

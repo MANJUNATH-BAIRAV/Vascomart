@@ -10,7 +10,7 @@ spring:
       discovery:
         locator:
           enabled: true
-          lower-case-service-id: true  # Important for case-insensitive service IDs
+          lower-case-service-id: true
       routes:
         # Auth Service Routes
         - id: auth-service
@@ -36,7 +36,14 @@ spring:
           filters:
             - StripPrefix=2
 
-# Eureka Configuration
+        # Order Service Route
+        - id: order-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - RewritePath=/api/v1/orders/(?<segment>.*), /api/v1/orders/$\{segment}
+
 eureka:
   client:
     register-with-eureka: true

@@ -2,7 +2,6 @@ version: '3.8'
 name: vascomart
 
 services:
-
   ## ===================== Postgres Databases =====================
   db-users:
     container_name: db-users
@@ -18,6 +17,12 @@ services:
     restart: unless-stopped
     networks:
       - vascomart
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   db-inventory:
     container_name: db-inventory
@@ -33,21 +38,17 @@ services:
     restart: unless-stopped
     networks:
       - vascomart
-
-  db-reviews:
-    container_name: db-reviews
-    image: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: reviews
-    volumes:
-      - db-pgdata-reviews:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
-    restart: unless-stopped
-    networks:
-      - vascomart
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   db-orders:
     container_name: db-orders
@@ -63,235 +64,415 @@ services:
     restart: unless-stopped
     networks:
       - vascomart
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ## ===================== Service Discovery =====================
   eureka-service:
     container_name: eureka-service
     build:
-      context: ../eureka-service
+      context: ./eureka-service
     image: vascomart/eureka-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
-    restart: unless-stopped
-    networks:
-      - vascomart
-
-  ## ===================== Gateway =====================
-  api-gateway:
-    container_name: api-gateway
-    build:
-      context: ../api-gateway
-    image: vascomart/api-gateway
+      SERVER_PORT: 8761
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: 'false'
+      EUREKA_CLIENT_FETCH_REGISTRY: 'false'
     ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      - eureka-service
+      - "8761:8761"
     restart: unless-stopped
     networks:
       - vascomart
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ## ===================== Microservices =====================
   user-service:
     container_name: user-service
     build:
-      context: ../user-service
-    image: vascomart/user-service
+      context: ./user-service
+      target: runtime
+    image: vascomart/user-service:${TAG:-latest}
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-users:5432/users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      EUREKA_INSTANCE_HOSTNAME: user-service
+      EUREKA_INSTANCE_NON_SECURE_PORT: 8080
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+    hostname: user-service
+    ports:
+      - "8081:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - db-users
-      - eureka-service
+      db-users:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   auth-service:
     container_name: auth-service
     build:
-      context: ../auth-service
+      context: ./auth-service
     image: vascomart/auth-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-users:5432/users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "8082:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - user-service
-      - eureka-service
+      db-users:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   inventory-service:
     container_name: inventory-service
     build:
-      context: ../inventory-service
-    image: vascomart/inventory-service
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    image: vascomart/inventory-service:${TAG:-latest}
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-inventory:5432/inventory
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      EUREKA_INSTANCE_HOSTNAME: inventory-service
+      EUREKA_INSTANCE_NON_SECURE_PORT: 8080
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+    hostname: inventory-service
+    ports:
+      - "8083:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - db-inventory
-      - eureka-service
+      db-inventory:
+        condition: service_healthy
+      eureka-service:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   order-service:
     container_name: order-service
     build:
-      context: ../order-service
+      context: ./order-service
     image: vascomart/order-service
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-orders:5432/orders
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:29092
+      API_KAFKA_TOPICS_ORDER_CREATED: order.created.v1
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "8085:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     depends_on:
-      - db-orders
-      - broker
-      - eureka-service
+      db-orders:
+        condition: service_healthy
+      broker:
+        condition: service_started
+      eureka-service:
+        condition: service_healthy
+      init-broker:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - vascomart
-
-  reviews-service:
-    container_name: reviews-service
-    build:
-      context: ../reviews-service
-    image: vascomart/reviews-service
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      - db-reviews
-      - eureka-service
-    restart: unless-stopped
-    networks:
-      - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   notification-service:
     container_name: notification-service
     build:
-      context: ../notification-service
-    image: vascomart/notification-service
+      context: ./notification-service
+      dockerfile: Dockerfile
+    image: vascomart/notification-service:latest
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      # Kafka Configuration
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: broker:29092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: notification-group
+      # Eureka Configuration
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      EUREKA_INSTANCE_LEASE_RENEWAL_INTERVAL_IN_SECONDS: '10'
+      EUREKA_INSTANCE_LEASE_EXPIRATION_DURATION_IN_SECONDS: '30'
+      # JVM Configuration
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+      # Application Port
+      SERVER_PORT: 8080
+    ports:
+      - "8086:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 768M
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     depends_on:
-      - eureka-service
+      eureka-service:
+        condition: service_healthy
+      broker:
+        condition: service_healthy
+      init-broker:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "notification-service"
 
   ## ===================== Kafka + Zookeeper =====================
   zookeeper:
     container_name: zookeeper
-    image: confluentinc/cp-zookeeper:latest
+    image: confluentinc/cp-zookeeper:7.4.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 10
+      ZOOKEEPER_SYNC_LIMIT: 5
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
     restart: unless-stopped
     networks:
       - vascomart
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc 127.0.0.1 2181 | grep Mode"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   broker:
     container_name: kafka-broker
     image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
     expose:
       - "29092"
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka-broker:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     restart: unless-stopped
     networks:
       - vascomart
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka-broker:29092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   init-broker:
     container_name: kafka-init
     image: confluentinc/cp-kafka:latest
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
     command: |
       "
-      kafka-topics --bootstrap-server kafka-broker:29092 --list
+      echo 'Waiting for Kafka to be ready...'
+      until kafka-topics --bootstrap-server broker:29092 --list; do
+        sleep 5
+      done
+      
       echo 'Creating Kafka topic: order.created.v1'
-      kafka-topics --bootstrap-server kafka-broker:29092 --create --if-not-exists --topic order.created.v1
-      kafka-topics --bootstrap-server kafka-broker:29092 --list
+      kafka-topics --bootstrap-server broker:29092 --create --if-not-exists \
+        --topic order.created.v1 \
+        --partitions 1 \
+        --replication-factor 1 \
+        --config retention.ms=604800000
+        
+      echo 'Available topics:'
+      kafka-topics --bootstrap-server broker:29092 --list
       "
     networks:
       - vascomart
 
-  ## ===================== Observability =====================
-  # otel-collector:
-  #   container_name: otel-collector
-  #   image: otel/opentelemetry-collector-contrib:0.96.0
-  #   command:
-  #     - --config=/etc/otelcol-contrib/otel-collector.yaml
-  #   volumes:
-  #     - ./otel-collector/otel-collector.yaml:/etc/otelcol-contrib/otel-collector.yaml
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
+  ## ===================== API Gateway =====================
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./gateway-service
+    image: vascomart/api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-service:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: 'true'
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+    ports:
+      - "8087:8080"
+    restart: unless-stopped
+    networks:
+      - vascomart
+    depends_on:
+      eureka-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # prometheus:
-  #   container_name: prometheus
-  #   image: prom/prometheus
-  #   command:
-  #     - --config.file=/etc/prometheus/prometheus.yaml
-  #   volumes:
-  #     - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
-
-  # grafana:
-  #   container_name: grafana
-  #   image: grafana/grafana:latest
-  #   ports:
-  #     - "3000:3000"
-  #   volumes:
-  #     - ./grafana/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
-
-  # loki:
-  #   container_name: loki
-  #   image: grafana/loki:latest
-  #   command: -config.file=/etc/loki/local-config.yaml
-  #   ports:
-  #     - "3100:3100"
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
-
-  # zipkin:
-  #   container_name: zipkin
-  #   image: openzipkin/zipkin
-  #   ports:
-  #     - "9411:9411"
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
-
-  # tempo:
-  #   container_name: tempo
-  #   image: grafana/tempo:latest
-  #   command: [ "-config.file=/etc/tempo.yaml" ]
-  #   volumes:
-  #     - ./tempo/tempo.yaml:/etc/tempo.yaml
-  #   ports:
-  #     - "3200:3200"
-  #   restart: unless-stopped
-  #   networks:
-  #     - vascomart
+  ## ===================== Frontend =====================
+  frontend:
+    container_name: frontend
+    build:
+      context: ./vascomart-frontend
+    image: vascomart/vascomart-frontend
+    ports:
+      - "3001:80"
+    stdin_open: true
+    tty: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vascomart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 ## ===================== Volumes =====================
 volumes:
   db-pgdata-users:
   db-pgdata-inventory:
-  db-pgdata-reviews:
   db-pgdata-orders:
+  zookeeper-data:
+  zookeeper-log:
+  kafka-data:
 
 ## ===================== Networks =====================
 networks:

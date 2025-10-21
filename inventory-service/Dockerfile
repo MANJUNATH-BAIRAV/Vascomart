@@ -1,10 +1,16 @@
-FROM maven:3.8.5-openjdk-17 AS build
-COPY . /usr/app
-WORKDIR /usr/app
+# Build stage
+FROM maven:3.8.5-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM openjdk:17
-VOLUME /tmp
-COPY --from=build /usr/app/target/*.jar inventory-service.jar
-ENTRYPOINT ["java","-jar","/inventory-service.jar"]
-EXPOSE 8083
+# Run stage
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/inventory-service-*.jar app.jar
+
+# Run Spring Boot on port 8080 inside container
+ENTRYPOINT ["java","-Dserver.port=8080","-jar","app.jar"]
+EXPOSE 8080

@@ -1,73 +1,52 @@
 server:
   port: 8087
-  error:
-    include-message: always
-    include-binding-errors: always
-    include-stacktrace: always
-    include-exception: true
-    whitelabel:
-      enabled: false
 
 spring:
   application:
     name: api-gateway
-
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
-
       routes:
-        # ✅ ORDER SERVICE ROUTE
-        - id: order-service
-          uri: lb://order-service
-          predicates:
-            - Path=/api/v1/orders/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: orderService
-                fallbackUri: forward:/fallback/order
-
-        # ✅ AUTH SERVICE ROUTE
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/v1/auth/**, /auth/**
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=1
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/v1/users/**
           filters:
             - StripPrefix=2
-            - name: CircuitBreaker
-              args:
-                name: authService
-                fallbackUri: forward:/fallback/auth
-
-        # ✅ INVENTORY SERVICE ROUTE
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
             - Path=/api/v1/products/**
           filters:
             - StripPrefix=2
-            - name: CircuitBreaker
-              args:
-                name: inventoryService
-                fallbackUri: forward:/fallback/inventory
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - RewritePath=/api/v1/orders/(?<segment>.*), /api/v1/orders/${segment}
 
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: http://eureka-service:8761/eureka/
   instance:
     prefer-ip-address: true
 
 logging:
   level:
-    root: INFO
+    org.springframework.cloud.gateway: DEBUG
     org.springframework.web: DEBUG
-    org.springframework.cloud.gateway: TRACE
-    com.example.apigateway: DEBUG
+    com.example: DEBUG

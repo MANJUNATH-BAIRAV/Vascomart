@@ -1,37 +1,44 @@
-eureka:
-  client:
-    fetch-registry: true
-    register-with-eureka: true
-    service-url:
-      defaultZone: http://eureka-service:8761/eureka/
 server:
+  port: 8080  # Standard port for Docker (mapped to 8085 in docker-compose)
   error:
     include-exception: false
+
 spring:
+  application:
+    name: order-service
   kafka:
     bootstrap-servers: broker:29092
   mvc:
     problemdetails:
       enabled: false
   datasource:
-    password: postgres
     url: jdbc:postgresql://db-orders:5432/orders
     username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-      enabled: false
-management:
-  otlp:
-    metrics:
-      export:
-        url: http://otel-collector:4318/v1/metrics
-        step: 10s
-    tracing:
-      endpoint: http://otel-collector:4318/v1/traces
-  tracing:
-    sampling:
-      probability: 1.0
+
+# Service URLs
+inventory-service:
+  url: http://inventory-service:8080  # Using Docker service name
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+    status-page-url: http://${eureka.instance.hostname}:${server.port}/actuator/info
+    health-check-url: http://${eureka.instance.hostname}:${server.port}/actuator/health
+    hostname: order-service
+  client:
+    service-url:
+      defaultZone: http://eureka-service:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
